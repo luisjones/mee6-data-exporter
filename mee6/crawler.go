@@ -80,7 +80,6 @@ func MockGetInfo(id int, page int) (Response, error) {
 func CrawlGuild(id int) ([]Response, error) {
 	var responses []Response
 	for i := 0; i >= 0; i++ {
-		log.Printf("Requesting MEE6 data page %d\n", i+1)
 		data, err := GetGuildInfo(id, i)
 		if err != nil {
 			return responses, err

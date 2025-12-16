@@ -27,6 +27,9 @@ func inputView(m model) string {
 }
 
 func spinnerView(m model) string {
-	label := m.Spinner.View() + "Querying Mee6 data for Discord Guild " + m.TextInput.Value() + "\nStatus: " + m.CurrentStatus
+	if m.Finished {
+		return "\n\n" + m.CurrentStatus
+	}
+	label := m.Spinner.View() + m.CurrentStatus
 	return "\n\n" + label
 }

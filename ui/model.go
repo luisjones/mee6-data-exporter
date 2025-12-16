@@ -32,6 +32,8 @@ type model struct {
 	ContinueCrawling bool
 }
 
+type CompletionMsg struct{}
+
 func (m model) CrawlAndInsert() tea.Cmd {
 	return func() tea.Msg {
 		guildID, _ := strconv.Atoi(m.TextInput.Value())
@@ -41,7 +43,7 @@ func (m model) CrawlAndInsert() tea.Cmd {
 			page.Insert(tx)
 		}
 		db.CommitTransaction(tx)
-		return mee6.Response{Page: -1}
+		return CompletionMsg{}
 	}
 }
 
@@ -94,12 +96,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 		}
 
-	case mee6.Response:
-		if msg.Page == -1 {
-			m.Finished = true
-			m.ContinueCrawling = false
-			m.CurrentStatus = "Finished crawling data and inserting into database"
-		}
+	case CompletionMsg:
+		m.Finished = true
+		m.ContinueCrawling = false
+		m.CurrentStatus = "Database saved successfully!"
 		return m, tea.Batch(cmds...)
 	}
 
