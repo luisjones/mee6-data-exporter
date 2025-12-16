@@ -1,16 +1,17 @@
 package ui
 
 import (
+	"database/sql"
 	"fmt"
-	"mee6xport/mee6"
-	"mee6xport/ui/components"
-	"regexp"
-	"time"
-
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/reflow/indent"
+	"mee6xport/db"
+	"mee6xport/mee6"
+	"mee6xport/ui/components"
+	"regexp"
+	"strconv"
 )
 
 // This holds the application state
@@ -22,25 +23,25 @@ type model struct {
 	CurrentStatus string
 
 	StartGenerating bool
-	CurrentPage     int
+	Pages           []mee6.Response
+	DB              *sql.DB
+	Tx              *sql.Tx
 
 	// Both of these booleans represent the same event.
 	Finished         bool
 	ContinueCrawling bool
 }
 
-func (m model) Listen() tea.Cmd {
+func (m model) CrawlAndInsert() tea.Cmd {
 	return func() tea.Msg {
-		// At the time of writing I've been rate limited by the API, oops!
-		// As such, we're having to reply on cached API responses I have stored in the /mock folder
-		x, err := mee6.MockGetInfo(1234, m.CurrentPage)
-		if err == nil {
-			time.Sleep(time.Second)
-			return x
-		} else {
-			time.Sleep(time.Second)
-			return mee6.Response{Page: -1} // Signal completion
+		guildID, _ := strconv.Atoi(m.TextInput.Value())
+		_, tx := db.PrepareDB()
+		pages, _ := mee6.CrawlGuild(guildID)
+		for _, page := range pages {
+			page.Insert(tx)
 		}
+		db.CommitTransaction(tx)
+		return mee6.Response{Page: -1}
 	}
 }
 
@@ -54,7 +55,7 @@ func initialiseModel() model {
 		Quitting:         false,
 		CurrentStatus:    "",
 		StartGenerating:  false,
-		CurrentPage:      0,
+		Pages:            []mee6.Response{},
 		ContinueCrawling: true,
 	}
 }
@@ -88,7 +89,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key == "enter" && !m.InputEntered && m.isValidDiscordGuildID() {
 			m.InputEntered = true
 			m.StartGenerating = true
-			cmds = append(cmds, m.Listen())
+			m.CurrentStatus = "crawling guild data..."
+			cmds = append(cmds, m.CrawlAndInsert())
 			return m, tea.Batch(cmds...)
 		}
 
@@ -96,11 +98,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Page == -1 {
 			m.Finished = true
 			m.ContinueCrawling = false
-			m.CurrentStatus = "Finished crawling data"
-		} else if m.ContinueCrawling {
-			m.CurrentStatus = fmt.Sprintf("Crawling page %d", msg.Page)
-			m.CurrentPage++
-			cmds = append(cmds, m.Listen())
+			m.CurrentStatus = "Finished crawling data and inserting into database"
 		}
 		return m, tea.Batch(cmds...)
 	}

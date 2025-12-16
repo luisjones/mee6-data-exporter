@@ -77,5 +77,4 @@ func CommitTransaction(tx *sql.Tx) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Inserted all data.")
 }
