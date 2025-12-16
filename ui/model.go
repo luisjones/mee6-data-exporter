@@ -37,7 +37,8 @@ type CompletionMsg struct{}
 func (m model) CrawlAndInsert() tea.Cmd {
 	return func() tea.Msg {
 		guildID, _ := strconv.Atoi(m.TextInput.Value())
-		_, tx := db.PrepareDB()
+		database, tx := db.PrepareDB()
+		defer database.Close()
 		pages, _ := mee6.CrawlGuild(guildID)
 		for _, page := range pages {
 			page.Insert(tx)

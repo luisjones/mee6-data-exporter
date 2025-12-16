@@ -46,20 +46,19 @@ func PrepareUserXPStatement(tx *sql.Tx) (*sql.Stmt, error) {
 }
 
 func PrepareDB() (db *sql.DB, tx *sql.Tx) {
-	filepath := "../export.db"
+	filepath := "export.db"
 	// Check if there is already a database in the root directory
 	if _, err := os.Stat(filepath); err == nil {
 		// Then delete the existing database
-		if err := os.Remove("../export.db"); err != nil {
+		if err := os.Remove("export.db"); err != nil {
 			log.Fatal(err)
 		}
 	}
 	// Now that the old database is deleted, we can create a new one
-	db, err := sql.Open("sqlite3", "../export.db")
+	db, err := sql.Open("sqlite3", "export.db")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 	if err := createTables(db); err != nil {
 		log.Fatal(err)
 	}
