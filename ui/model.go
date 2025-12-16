@@ -27,9 +27,7 @@ type model struct {
 	DB              *sql.DB
 	Tx              *sql.Tx
 
-	// Both of these booleans represent the same event.
-	Finished         bool
-	ContinueCrawling bool
+	Finished bool
 }
 
 type CompletionMsg struct{}
@@ -51,15 +49,14 @@ func (m model) CrawlAndInsert() tea.Cmd {
 // Creates a new model{} structure, using default config
 func initialiseModel() model {
 	return model{
-		TextInput:        components.TextInput(),
-		Spinner:          components.Spinner(),
-		InputEntered:     false,
-		Finished:         false,
-		Quitting:         false,
-		CurrentStatus:    "",
-		StartGenerating:  false,
-		Pages:            []mee6.Response{},
-		ContinueCrawling: true,
+		TextInput:       components.TextInput(),
+		Spinner:         components.Spinner(),
+		InputEntered:    false,
+		Finished:        false,
+		Quitting:        false,
+		CurrentStatus:   "",
+		StartGenerating: false,
+		Pages:           []mee6.Response{},
 	}
 }
 
@@ -99,7 +96,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case CompletionMsg:
 		m.Finished = true
-		m.ContinueCrawling = false
 		m.CurrentStatus = "Database saved successfully!"
 		return m, tea.Batch(cmds...)
 	}
@@ -123,11 +119,7 @@ func (m model) View() string {
 }
 
 func (m model) isValidDiscordGuildID() bool {
-	// Regular Expression returns true for digits with a length of 17-19 characters.
-	/*
-		TODO: Double check discord snowflake length
-		Recently increased to 19 but check that this length is consistent across guilds and not variable
-	*/
+	// Checks for digits with a length of 17-19 characters.
 	regex, _ := regexp.Compile(`\d{17,19}`)
 	return regex.MatchString(m.TextInput.Value())
 }
