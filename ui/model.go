@@ -22,7 +22,6 @@ type model struct {
 	CurrentStatus string
 
 	StartGenerating bool
-	Channel         chan mee6.Response
 	CurrentPage     int
 
 	// Both of these booleans represent the same event.
@@ -32,27 +31,16 @@ type model struct {
 
 func (m model) Listen() tea.Cmd {
 	return func() tea.Msg {
-		for i := 0; !m.Finished; i++ {
-			// At the time of writing I've been rate limited by the API, oops!
-			// As such, we're having to reply on cached API responses I have stored in the /mock folder
-			x, err := mee6.MockGetInfo(1234, i)
-			if err == nil {
-				time.Sleep(time.Second)
-				m.Channel <- x
-			} else {
-				time.Sleep(time.Second)
-				m.ContinueCrawling = false
-				m.Finished = true
-			}
+		// At the time of writing I've been rate limited by the API, oops!
+		// As such, we're having to reply on cached API responses I have stored in the /mock folder
+		x, err := mee6.MockGetInfo(1234, m.CurrentPage)
+		if err == nil {
+			time.Sleep(time.Second)
+			return x
+		} else {
+			time.Sleep(time.Second)
+			return mee6.Response{Page: -1} // Signal completion
 		}
-		return nil
-	}
-}
-
-func waitForActivity(ch chan mee6.Response) tea.Cmd {
-	return func() tea.Msg {
-		incomingMessage := mee6.Response(<-ch)
-		return incomingMessage
 	}
 }
 
@@ -66,18 +54,24 @@ func initialiseModel() model {
 		Quitting:         false,
 		CurrentStatus:    "",
 		StartGenerating:  false,
-		Channel:          make(chan mee6.Response),
 		CurrentPage:      0,
 		ContinueCrawling: true,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(m.Spinner.Tick, waitForActivity(m.Channel))
+	return m.Spinner.Tick
 }
 
-// Called as an event when an update is processed to the main application
+// Update processes events and updates the model state
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
+	// Always update spinner first
+	m.Spinner, cmd = m.Spinner.Update(msg)
+	cmds = append(cmds, cmd)
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		key := msg.String()
@@ -85,33 +79,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Quitting = true
 			return m, tea.Quit
 		}
-		m.TextInput, _ = m.TextInput.Update(msg)
+		// Only update text input if we haven't entered yet
+		if !m.InputEntered {
+			m.TextInput, _ = m.TextInput.Update(msg)
+		}
+
+		// Handle enter key
+		if key == "enter" && !m.InputEntered && m.isValidDiscordGuildID() {
+			m.InputEntered = true
+			m.StartGenerating = true
+			cmds = append(cmds, m.Listen())
+			return m, tea.Batch(cmds...)
+		}
+
 	case mee6.Response:
-		if m.ContinueCrawling {
-			m.CurrentStatus = fmt.Sprintf("Crawling %d", msg.Page)
-			return m, waitForActivity(m.Channel)
+		if msg.Page == -1 {
+			m.Finished = true
+			m.ContinueCrawling = false
+			m.CurrentStatus = "Finished crawling data"
+		} else if m.ContinueCrawling {
+			m.CurrentStatus = fmt.Sprintf("Crawling page %d", msg.Page)
+			m.CurrentPage++
+			cmds = append(cmds, m.Listen())
 		}
-		return m, nil
+		return m, tea.Batch(cmds...)
 	}
 
-	// If an input hasn't been entered, watch for the enter key being pressed
-	if !m.InputEntered && !m.Finished {
-		return setEntered(msg, m)
-	}
-
-	// If an input has been entered, start calling the mee6 api
-	if m.InputEntered && !m.Finished {
-		if m.StartGenerating {
-			return m, nil
-		} else {
-			m.StartGenerating = false
-			return m, m.Listen()
-		}
-	}
-
-	var cmd tea.Cmd
-	m.Spinner, cmd = m.Spinner.Update(msg)
-	return m, tea.Batch(cmd, m.Spinner.Tick)
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
