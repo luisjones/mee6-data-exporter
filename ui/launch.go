@@ -6,7 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Launch the program
 func LaunchProgram() {
 	program := tea.NewProgram(initialiseModel())
 	if _, err := program.Run(); err != nil {

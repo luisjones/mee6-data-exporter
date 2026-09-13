@@ -1,6 +1,5 @@
 package mee6
 
-// Represents a response from the Mee6 API
 type Response struct {
 	Page              int             `json:"page"`
 	Guild             Guild           `json:"guild"`
@@ -17,7 +16,6 @@ type Response struct {
 	Country           string          `json:"country"`
 }
 
-// Holds specific Information about Discord Guild, Also known as a 'server'
 type Guild struct {
 	ID                         string `json:"id"`
 	Icon                       string `json:"icon"`
@@ -35,7 +33,6 @@ type RoleRewards struct {
 	Role Role `json:"role"`
 }
 
-// Holds information about a Discord role object
 type Role struct {
 	Color        int    `json:"color"`
 	Hoist        bool   `json:"hoist"`
@@ -54,7 +51,6 @@ type MonetizeOptions struct {
 	ShowcaseSubscribers bool `json:"showcase_subscribers"`
 }
 
-// Holds player information such as XP and Level data.
 type PlayerType struct {
 	Avatar               string `json:"avatar"`
 	Discriminator        string `json:"discriminator"`

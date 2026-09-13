@@ -7,23 +7,23 @@ import (
 )
 
 func inputView(m model) string {
-	var style lipgloss.Style
-
+	statusColor := colourInvalidID
+	statusText := "Invalid ID"
 	if m.isValidDiscordGuildID() {
-		style = lipgloss.NewStyle().Foreground(lipgloss.Color("#32cd32"))
-		return fmt.Sprintf(
-			"Discord Server ID\n\n%s\n%s",
-			m.TextInput.View(),
-			style.Render("Valid ID"),
-		) + "\n"
-	} else {
-		style = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000"))
-		return fmt.Sprintf(
-			"Discord Server ID\n\n%s\n%s",
-			m.TextInput.View(),
-			style.Render("Invalid ID"),
-		) + "\n"
+		statusColor = colourValidID
+		statusText = "Valid ID"
 	}
+
+	status := lipgloss.NewStyle().Foreground(statusColor).Render(statusText)
+	title := lipgloss.NewStyle().Bold(true).Foreground(colourTitle).Render("MEE6 Exporter")
+
+	body := "This program will export MEE6 server statistics.\n\n  " +
+		"To get started, enter your Discord Server ID.\n  " +
+		"You can find this by right clicking your server\n  " +
+		"icon in Discord and clicking \"Copy Server ID\".\n\n  " +
+		"%s\n  %s"
+
+	return fmt.Sprintf("%s\n\n  "+body, title, m.TextInput.View(), status) + "\n"
 }
 
 func spinnerView(m model) string {

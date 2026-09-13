@@ -34,7 +34,6 @@ func createTables(db *sql.DB) error {
 	return err
 }
 
-// Using prepared statements is best practice for security reasons.
 func PrepareUserDataStatement(tx *sql.Tx) (*sql.Stmt, error) {
 	stmt, err := tx.Prepare("INSERT INTO userdata (user_id, avatar, discriminator, message_count, monetize_xp_boost, username, xp, level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 	return stmt, err
@@ -47,14 +46,11 @@ func PrepareUserXPStatement(tx *sql.Tx) (*sql.Stmt, error) {
 
 func PrepareDB() (db *sql.DB, tx *sql.Tx) {
 	filepath := "export.db"
-	// Check if there is already a database in the root directory
 	if _, err := os.Stat(filepath); err == nil {
-		// Then delete the existing database
 		if err := os.Remove("export.db"); err != nil {
 			log.Fatal(err)
 		}
 	}
-	// Now that the old database is deleted, we can create a new one
 	db, err := sql.Open("sqlite3", "export.db")
 	if err != nil {
 		log.Fatal(err)
@@ -62,7 +58,6 @@ func PrepareDB() (db *sql.DB, tx *sql.Tx) {
 	if err := createTables(db); err != nil {
 		log.Fatal(err)
 	}
-	// Use transactions to ensure the contents are submitted in their entirety.
 	tx, err = db.Begin()
 	if err != nil {
 		log.Fatal(err)
